@@ -1,9 +1,10 @@
 import * as THREE from "https://esm.sh/three@0.164.1";
 import { GLTFLoader } from "https://esm.sh/three@0.164.1/examples/jsm/loaders/GLTFLoader.js";
 import { OrbitControls } from "https://esm.sh/three@0.164.1/examples/jsm/controls/OrbitControls.js";
-import { VRButton } from "https://esm.sh/three@0.164.1/examples/jsm/webxr/VRButton.js";
+import { StereoEffect } from "https://esm.sh/three@0.164.1/examples/jsm/effects/StereoEffect.js";
 
 const viewer = document.getElementById("viewer");
+const btnVR = document.getElementById("btnVR");
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x202020);
@@ -19,18 +20,21 @@ camera.position.set(0, 1.7, 6);
 
 const renderer = new THREE.WebGLRenderer({
   antialias: true,
-  alpha: false,
 });
 
 renderer.setSize(viewer.clientWidth, viewer.clientHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.xr.enabled = true;
 
 viewer.appendChild(renderer.domElement);
-document.body.appendChild(VRButton.createButton(renderer));
+
+const effect = new StereoEffect(renderer);
+effect.setSize(viewer.clientWidth, viewer.clientHeight);
+
+let modoVR = false;
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
+controls.enablePan = false;
 controls.target.set(0, 1, 0);
 
 const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
@@ -69,6 +73,27 @@ window.addEventListener("keyup", (e) => {
   if (e.key === "d" || e.key === "ArrowRight") keys.right = false;
 });
 
+if (btnVR) {
+  btnVR.addEventListener("click", async () => {
+    modoVR = !modoVR;
+
+    if (modoVR) {
+      await document.documentElement.requestFullscreen?.();
+
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock("landscape").catch(() => {});
+      }
+
+      btnVR.textContent = "Salir de VR";
+    } else {
+      document.exitFullscreen?.();
+      btnVR.textContent = "Activar modo VR";
+    }
+
+    resizeRenderer();
+  });
+}
+
 const loader = new GLTFLoader();
 
 loader.load(
@@ -87,14 +112,13 @@ loader.load(
 
     const maxSize = Math.max(size.x, size.y, size.z);
     const scale = 5 / maxSize;
-    model.scale.setScalar(scale);
 
+    model.scale.setScalar(scale);
     model.position.y = 0;
 
     controls.target.set(0, 1, 0);
     controls.update();
 
-    camera.position.set(0, 1.7, 6);
     player.position.set(0, 1.7, 6);
   },
   function (xhr) {
@@ -107,7 +131,6 @@ loader.load(
 
 function movePlayer() {
   const speed = 0.05;
-
   const direction = new THREE.Vector3();
 
   if (keys.forward) direction.z -= speed;
@@ -118,14 +141,29 @@ function movePlayer() {
   player.position.add(direction);
 }
 
-window.addEventListener("resize", () => {
-  camera.aspect = viewer.clientWidth / viewer.clientHeight;
+function resizeRenderer() {
+  const width = viewer.clientWidth;
+  const height = viewer.clientHeight;
+
+  camera.aspect = width / height;
   camera.updateProjectionMatrix();
-  renderer.setSize(viewer.clientWidth, viewer.clientHeight);
+
+  renderer.setSize(width, height);
+  effect.setSize(width, height);
+}
+
+window.addEventListener("resize", resizeRenderer);
+window.addEventListener("orientationchange", () => {
+  setTimeout(resizeRenderer, 300);
 });
 
 renderer.setAnimationLoop(() => {
   movePlayer();
   controls.update();
-  renderer.render(scene, camera);
+
+  if (modoVR) {
+    effect.render(scene, camera);
+  } else {
+    renderer.render(scene, camera);
+  }
 });
