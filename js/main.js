@@ -14,6 +14,9 @@ const panelConfig = document.getElementById("panelConfig");
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x202020);
 
+const ALTURA_CAMARA = 1.7;
+const LIMITE_PISO = 1.2;
+
 const camera = new THREE.PerspectiveCamera(
   75,
   viewer.clientWidth / viewer.clientHeight,
@@ -21,7 +24,7 @@ const camera = new THREE.PerspectiveCamera(
   1000,
 );
 
-camera.position.set(0, 1.7, 6);
+camera.position.set(0, 0, 0);
 
 const renderer = new THREE.WebGLRenderer({
   antialias: true,
@@ -37,6 +40,11 @@ effect.setSize(viewer.clientWidth, viewer.clientHeight);
 
 let modoVR = false;
 let vistaSeleccionada = "normal";
+
+let usarGiroscopio = false;
+let alpha = 0;
+let beta = 0;
+let gamma = 0;
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -54,7 +62,7 @@ const grid = new THREE.GridHelper(20, 20);
 scene.add(grid);
 
 const player = new THREE.Group();
-player.position.set(0, 1.7, 6);
+player.position.set(0, ALTURA_CAMARA, 6);
 scene.add(player);
 player.add(camera);
 
@@ -90,9 +98,11 @@ if (btnVR) {
     modoVR = !modoVR;
 
     if (modoVR) {
-      activarPantallaCompleta();
+      await activarPantallaCompleta();
+      await activarGiroscopio();
     } else {
       salirPantallaCompleta();
+      desactivarGiroscopio();
     }
 
     resizeRenderer();
@@ -131,6 +141,42 @@ function salirPantallaCompleta() {
   document.exitFullscreen?.();
 }
 
+async function activarGiroscopio() {
+  try {
+    if (
+      typeof DeviceOrientationEvent !== "undefined" &&
+      typeof DeviceOrientationEvent.requestPermission === "function"
+    ) {
+      const permiso = await DeviceOrientationEvent.requestPermission();
+
+      if (permiso !== "granted") {
+        alert("No se concedió permiso para usar el giroscopio.");
+        return;
+      }
+    }
+
+    window.addEventListener("deviceorientation", leerOrientacion, true);
+
+    usarGiroscopio = true;
+    controls.enabled = false;
+  } catch (error) {
+    console.error("Error al activar giroscopio:", error);
+    alert("Tu navegador no permitió usar el giroscopio.");
+  }
+}
+
+function desactivarGiroscopio() {
+  usarGiroscopio = false;
+  window.removeEventListener("deviceorientation", leerOrientacion, true);
+  controls.enabled = true;
+}
+
+function leerOrientacion(event) {
+  alpha = event.alpha || 0;
+  beta = event.beta || 0;
+  gamma = event.gamma || 0;
+}
+
 const loader = new GLTFLoader();
 
 loader.load(
@@ -156,7 +202,7 @@ loader.load(
     controls.target.set(0, 1, 0);
     controls.update();
 
-    player.position.set(0, 1.7, 6);
+    player.position.set(0, ALTURA_CAMARA, 6);
   },
   function (xhr) {
     console.log(`Cargando: ${(xhr.loaded / xhr.total) * 100}%`);
@@ -176,6 +222,21 @@ function movePlayer() {
   if (keys.right) direction.x += speed;
 
   player.position.add(direction);
+
+  if (player.position.y < LIMITE_PISO) {
+    player.position.y = LIMITE_PISO;
+  }
+}
+
+function aplicarGiroscopio() {
+  const euler = new THREE.Euler(
+    THREE.MathUtils.degToRad(beta - 90),
+    THREE.MathUtils.degToRad(alpha),
+    THREE.MathUtils.degToRad(-gamma),
+    "YXZ",
+  );
+
+  camera.quaternion.setFromEuler(euler);
 }
 
 function aplicarVistaVR() {
@@ -217,12 +278,19 @@ document.addEventListener("fullscreenchange", () => {
   if (!document.fullscreenElement && modoVR) {
     modoVR = false;
     salirPantallaCompleta();
+    desactivarGiroscopio();
   }
 });
 
 renderer.setAnimationLoop(() => {
   movePlayer();
-  controls.update();
+
+  if (usarGiroscopio) {
+    aplicarGiroscopio();
+  } else {
+    controls.update();
+  }
+
   aplicarVistaVR();
 
   if (modoVR && vistaSeleccionada !== "normal") {
