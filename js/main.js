@@ -5,6 +5,11 @@ import { StereoEffect } from "https://esm.sh/three@0.164.1/examples/jsm/effects/
 
 const viewer = document.getElementById("viewer");
 const btnVR = document.getElementById("btnVR");
+const tipoVR = document.getElementById("tipoVR");
+
+const navbar = document.getElementById("navbar");
+const footer = document.getElementById("footer");
+const panelConfig = document.getElementById("panelConfig");
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x202020);
@@ -31,6 +36,7 @@ const effect = new StereoEffect(renderer);
 effect.setSize(viewer.clientWidth, viewer.clientHeight);
 
 let modoVR = false;
+let vistaSeleccionada = "normal";
 
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -73,25 +79,56 @@ window.addEventListener("keyup", (e) => {
   if (e.key === "d" || e.key === "ArrowRight") keys.right = false;
 });
 
+if (tipoVR) {
+  tipoVR.addEventListener("change", () => {
+    vistaSeleccionada = tipoVR.value;
+  });
+}
+
 if (btnVR) {
   btnVR.addEventListener("click", async () => {
     modoVR = !modoVR;
 
     if (modoVR) {
-      await document.documentElement.requestFullscreen?.();
-
-      if (screen.orientation && screen.orientation.lock) {
-        screen.orientation.lock("landscape").catch(() => {});
-      }
-
-      btnVR.textContent = "Salir de VR";
+      activarPantallaCompleta();
     } else {
-      document.exitFullscreen?.();
-      btnVR.textContent = "Activar modo VR";
+      salirPantallaCompleta();
     }
 
     resizeRenderer();
   });
+}
+
+async function activarPantallaCompleta() {
+  navbar.style.display = "none";
+  footer.style.display = "none";
+  panelConfig.style.display = "none";
+
+  viewer.classList.add("fullscreen-viewer");
+
+  btnVR.textContent = "Salir de VR";
+  btnVR.classList.add("btn-danger");
+  btnVR.classList.remove("btn-primary");
+
+  await document.documentElement.requestFullscreen?.();
+
+  if (screen.orientation && screen.orientation.lock) {
+    screen.orientation.lock("landscape").catch(() => {});
+  }
+}
+
+function salirPantallaCompleta() {
+  navbar.style.display = "block";
+  footer.style.display = "block";
+  panelConfig.style.display = "block";
+
+  viewer.classList.remove("fullscreen-viewer");
+
+  btnVR.textContent = "Activar modo VR";
+  btnVR.classList.add("btn-primary");
+  btnVR.classList.remove("btn-danger");
+
+  document.exitFullscreen?.();
 }
 
 const loader = new GLTFLoader();
@@ -141,6 +178,24 @@ function movePlayer() {
   player.position.add(direction);
 }
 
+function aplicarVistaVR() {
+  if (vistaSeleccionada === "cardboard1") {
+    camera.fov = 70;
+    effect.eyeSeparation = 0.055;
+  }
+
+  if (vistaSeleccionada === "cardboard2") {
+    camera.fov = 80;
+    effect.eyeSeparation = 0.064;
+  }
+
+  if (vistaSeleccionada === "normal") {
+    camera.fov = 75;
+  }
+
+  camera.updateProjectionMatrix();
+}
+
 function resizeRenderer() {
   const width = viewer.clientWidth;
   const height = viewer.clientHeight;
@@ -153,15 +208,24 @@ function resizeRenderer() {
 }
 
 window.addEventListener("resize", resizeRenderer);
+
 window.addEventListener("orientationchange", () => {
   setTimeout(resizeRenderer, 300);
+});
+
+document.addEventListener("fullscreenchange", () => {
+  if (!document.fullscreenElement && modoVR) {
+    modoVR = false;
+    salirPantallaCompleta();
+  }
 });
 
 renderer.setAnimationLoop(() => {
   movePlayer();
   controls.update();
+  aplicarVistaVR();
 
-  if (modoVR) {
+  if (modoVR && vistaSeleccionada !== "normal") {
     effect.render(scene, camera);
   } else {
     renderer.render(scene, camera);

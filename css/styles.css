@@ -16,3 +16,17 @@ html, body {
 canvas {
   display: block;
 }
+
+
+.fullscreen-viewer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 999;
+}
+
+#btnVR {
+  z-index: 1000;
+}

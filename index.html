@@ -16,7 +16,7 @@
   </head>
 
   <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav id="navbar" class="navbar navbar-expand-lg navbar-dark bg-dark">
       <div class="container">
         <a class="navbar-brand" href="#">Visor 3D VR</a>
       </div>
@@ -26,6 +26,16 @@
       <div id="viewer"></div>
     </main>
 
+    <div id="panelConfig" class="card position-fixed top-0 end-0 m-3 p-3 z-3">
+      <label for="tipoVR" class="form-label fw-bold">Tipo de vista</label>
+
+      <select id="tipoVR" class="form-select">
+        <option value="normal">Sin VR</option>
+        <option value="cardboard1">Cardboard V1</option>
+        <option value="cardboard2">Cardboard V2</option>
+      </select>
+    </div>
+
     <button
       id="btnVR"
       class="btn btn-primary position-fixed bottom-0 start-50 translate-middle-x mb-5 z-3"
@@ -33,7 +43,7 @@
       Activar modo VR
     </button>
 
-    <footer class="bg-dark text-white text-center py-3">
+    <footer id="footer" class="bg-dark text-white text-center py-3">
       <p class="mb-0">Programador: Álvaro Madrid Morales</p>
       <small
         >Proyecto web con Three.js, Bootstrap y modo VR para smartphone</small
