@@ -185,19 +185,8 @@ loader.load(
     const model = gltf.scene;
     scene.add(model);
 
-    const box = new THREE.Box3().setFromObject(model);
-    const center = box.getCenter(new THREE.Vector3());
-    const size = box.getSize(new THREE.Vector3());
-
-    model.position.x -= center.x;
-    model.position.y -= center.y;
-    model.position.z -= center.z;
-
-    const maxSize = Math.max(size.x, size.y, size.z);
-    const scale = 5 / maxSize;
-
-    model.scale.setScalar(scale);
-    model.position.y = 0;
+    model.position.set(0, 0, 0);
+    model.scale.set(1, 1, 1);
 
     controls.target.set(0, 1, 0);
     controls.update();
