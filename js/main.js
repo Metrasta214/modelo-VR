@@ -62,7 +62,7 @@ const grid = new THREE.GridHelper(20, 20);
 scene.add(grid);
 
 const player = new THREE.Group();
-player.position.set(0, ALTURA_CAMARA, 6);
+player.position.set(0, ALTURA_CAMARA, 0);
 scene.add(player);
 player.add(camera);
 
@@ -202,7 +202,7 @@ loader.load(
     controls.target.set(0, 1, 0);
     controls.update();
 
-    player.position.set(0, ALTURA_CAMARA, 6);
+    player.position.set(0, ALTURA_CAMARA, 0);
   },
   function (xhr) {
     console.log(`Cargando: ${(xhr.loaded / xhr.total) * 100}%`);
