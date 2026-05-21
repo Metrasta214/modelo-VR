@@ -46,6 +46,14 @@ let alpha = 0;
 let beta = 0;
 let gamma = 0;
 
+const raycaster = new THREE.Raycaster();
+const centroPantalla = new THREE.Vector2(0, 0);
+
+let puntosTeleport = [];
+let puntoMirado = null;
+let tiempoMirando = 0;
+const TIEMPO_TELEPORT = 1.5;
+
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.enablePan = false;
@@ -85,6 +93,10 @@ window.addEventListener("keyup", (e) => {
   if (e.key === "s" || e.key === "ArrowDown") keys.backward = false;
   if (e.key === "a" || e.key === "ArrowLeft") keys.left = false;
   if (e.key === "d" || e.key === "ArrowRight") keys.right = false;
+});
+
+window.addEventListener("gamepadconnected", (e) => {
+  alert("Control conectado: " + e.gamepad.id);
 });
 
 if (tipoVR) {
@@ -192,6 +204,8 @@ loader.load(
     controls.update();
 
     player.position.set(0, ALTURA_CAMARA, 0);
+
+    crearPuntosTeleport();
   },
   function (xhr) {
     console.log(`Cargando: ${(xhr.loaded / xhr.total) * 100}%`);
@@ -200,6 +214,123 @@ loader.load(
     console.error("Error al cargar el modelo:", error);
   },
 );
+
+function crearPuntosTeleport() {
+  const posiciones = [
+    { nombre: "Inicio", x: 0, y: 0.05, z: 0 },
+    { nombre: "Esquina 1", x: -3, y: 0.05, z: -3 },
+    { nombre: "Esquina 2", x: 3, y: 0.05, z: -3 },
+    { nombre: "Esquina 3", x: -3, y: 0.05, z: 3 },
+    { nombre: "Esquina 4", x: 3, y: 0.05, z: 3 },
+  ];
+
+  posiciones.forEach((pos) => {
+    const grupo = new THREE.Group();
+    grupo.position.set(pos.x, pos.y, pos.z);
+    grupo.name = pos.nombre;
+
+    const base = new THREE.Mesh(
+      new THREE.RingGeometry(0.25, 0.32, 64),
+      new THREE.MeshBasicMaterial({
+        color: 0x00aaff,
+        side: THREE.DoubleSide,
+      }),
+    );
+
+    base.rotation.x = -Math.PI / 2;
+    grupo.add(base);
+
+    const progreso = crearCirculoProgreso(0.01);
+    grupo.add(progreso);
+
+    grupo.userData.destino = new THREE.Vector3(pos.x, ALTURA_CAMARA, pos.z);
+    grupo.userData.progreso = progreso;
+
+    scene.add(grupo);
+    puntosTeleport.push(grupo);
+  });
+}
+
+function crearCirculoProgreso(progreso) {
+  const circulo = new THREE.Mesh(
+    new THREE.RingGeometry(0.34, 0.42, 64, 1, 0, Math.PI * 2 * progreso),
+    new THREE.MeshBasicMaterial({
+      color: 0x00ff88,
+      side: THREE.DoubleSide,
+    }),
+  );
+
+  circulo.rotation.x = -Math.PI / 2;
+  return circulo;
+}
+
+function actualizarTeleport(delta) {
+  raycaster.setFromCamera(centroPantalla, camera);
+
+  const objetos = puntosTeleport.flatMap((punto) => punto.children);
+  const intersects = raycaster.intersectObjects(objetos, true);
+
+  if (intersects.length > 0) {
+    const objeto = intersects[0].object;
+    const grupo = objeto.parent;
+
+    if (!grupo || !grupo.userData.destino) return;
+
+    if (puntoMirado === grupo) {
+      tiempoMirando += delta;
+    } else {
+      resetearProgresoTeleport();
+      puntoMirado = grupo;
+      tiempoMirando = 0;
+    }
+
+    const progreso = Math.min(tiempoMirando / TIEMPO_TELEPORT, 1);
+
+    grupo.remove(grupo.userData.progreso);
+
+    const nuevoProgreso = crearCirculoProgreso(progreso);
+    grupo.userData.progreso = nuevoProgreso;
+    grupo.add(nuevoProgreso);
+
+    if (progreso >= 1) {
+      const destino = grupo.userData.destino;
+      player.position.set(destino.x, ALTURA_CAMARA, destino.z);
+
+      resetearProgresoTeleport();
+    }
+  } else {
+    resetearProgresoTeleport();
+  }
+}
+
+function resetearProgresoTeleport() {
+  if (puntoMirado && puntoMirado.userData.progreso) {
+    puntoMirado.remove(puntoMirado.userData.progreso);
+
+    const progresoVacio = crearCirculoProgreso(0.01);
+    puntoMirado.userData.progreso = progresoVacio;
+    puntoMirado.add(progresoVacio);
+  }
+
+  puntoMirado = null;
+  tiempoMirando = 0;
+}
+
+function leerGamepad() {
+  const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+
+  for (const gamepad of gamepads) {
+    if (!gamepad) continue;
+
+    const ejeX = gamepad.axes[0] || 0;
+    const ejeY = gamepad.axes[1] || 0;
+
+    keys.forward = ejeY < -0.3 || gamepad.buttons[0]?.pressed;
+    keys.backward = ejeY > 0.3 || gamepad.buttons[1]?.pressed;
+    keys.left = ejeX < -0.3;
+    keys.right = ejeX > 0.3;
+  }
+}
 
 function movePlayer() {
   const speed = 0.05;
@@ -283,7 +414,12 @@ document.addEventListener("fullscreenchange", () => {
   }
 });
 
+const clock = new THREE.Clock();
+
 renderer.setAnimationLoop(() => {
+  const delta = clock.getDelta();
+
+  leerGamepad();
   movePlayer();
 
   if (usarGiroscopio) {
@@ -292,6 +428,7 @@ renderer.setAnimationLoop(() => {
     controls.update();
   }
 
+  actualizarTeleport(delta);
   aplicarVistaVR();
 
   if (modoVR && vistaSeleccionada !== "normal") {
