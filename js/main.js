@@ -123,7 +123,7 @@ async function activarPantallaCompleta() {
   await document.documentElement.requestFullscreen?.();
 
   if (screen.orientation && screen.orientation.lock) {
-    screen.orientation.lock("landscape").catch(() => {});
+    screen.orientation.lock("landscape-primary").catch(() => {});
   }
 }
 
@@ -229,28 +229,40 @@ function movePlayer() {
 }
 
 function aplicarGiroscopio() {
-  const euler = new THREE.Euler(
-    THREE.MathUtils.degToRad(beta - 90),
-    THREE.MathUtils.degToRad(alpha),
-    THREE.MathUtils.degToRad(-gamma),
-    "YXZ",
+  const orientacionPantalla =
+    screen.orientation?.angle || window.orientation || 0;
+
+  const alphaRad = THREE.MathUtils.degToRad(alpha);
+  const betaRad = THREE.MathUtils.degToRad(beta);
+  const gammaRad = THREE.MathUtils.degToRad(gamma);
+  const orientacionRad = THREE.MathUtils.degToRad(orientacionPantalla);
+
+  const euler = new THREE.Euler(betaRad, alphaRad, -gammaRad, "YXZ");
+
+  const quaternion = new THREE.Quaternion();
+  quaternion.setFromEuler(euler);
+
+  const correccionCamara = new THREE.Quaternion();
+  correccionCamara.setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
+
+  const correccionPantalla = new THREE.Quaternion();
+  correccionPantalla.setFromAxisAngle(
+    new THREE.Vector3(0, 0, 1),
+    -orientacionRad,
   );
 
-  camera.quaternion.setFromEuler(euler);
+  quaternion.multiply(correccionCamara);
+  quaternion.multiply(correccionPantalla);
+
+  camera.quaternion.copy(quaternion);
 }
 
 function aplicarVistaVR() {
   if (vistaSeleccionada === "cardboard1") {
-    camera.fov = 70;
-    effect.eyeSeparation = 0.055;
-  }
-
-  if (vistaSeleccionada === "cardboard2") {
+    camera.fov = 65;
+  } else if (vistaSeleccionada === "cardboard2") {
     camera.fov = 80;
-    effect.eyeSeparation = 0.064;
-  }
-
-  if (vistaSeleccionada === "normal") {
+  } else {
     camera.fov = 75;
   }
 
