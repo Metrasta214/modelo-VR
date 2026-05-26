@@ -217,11 +217,11 @@ loader.load(
 
 function crearPuntosTeleport() {
   const posiciones = [
-    { nombre: "Inicio", x: 0, y: 0.05, z: 0 },
-    { nombre: "Esquina 1", x: -3, y: 0.05, z: -3 },
-    { nombre: "Esquina 2", x: 3, y: 0.05, z: -3 },
-    { nombre: "Esquina 3", x: -3, y: 0.05, z: 3 },
-    { nombre: "Esquina 4", x: 3, y: 0.05, z: 3 },
+    { nombre: "Inicio", x: 0, y: 1.2, z: 0 },
+    { nombre: "Esquina 1", x: -3, y: 1.2, z: -3 },
+    { nombre: "Esquina 2", x: 3, y: 1.2, z: -3 },
+    { nombre: "Esquina 3", x: -3, y: 1.2, z: 3 },
+    { nombre: "Esquina 4", x: 3, y: 1.2, z: 3 },
   ];
 
   posiciones.forEach((pos) => {
@@ -229,22 +229,57 @@ function crearPuntosTeleport() {
     grupo.position.set(pos.x, pos.y, pos.z);
     grupo.name = pos.nombre;
 
-    const base = new THREE.Mesh(
-      new THREE.RingGeometry(0.25, 0.32, 64),
+    const marcador = new THREE.Group();
+
+    const cabeza = new THREE.Mesh(
+      new THREE.CircleGeometry(0.22, 64),
       new THREE.MeshBasicMaterial({
-        color: 0x00aaff,
+        color: 0xff4b3e,
         side: THREE.DoubleSide,
       }),
     );
 
-    base.rotation.x = -Math.PI / 2;
-    grupo.add(base);
+    cabeza.position.y = 0.18;
+    marcador.add(cabeza);
+
+    const puntaShape = new THREE.Shape();
+    puntaShape.moveTo(0, -0.35);
+    puntaShape.lineTo(-0.16, 0.02);
+    puntaShape.lineTo(0.16, 0.02);
+    puntaShape.lineTo(0, -0.35);
+
+    const punta = new THREE.Mesh(
+      new THREE.ShapeGeometry(puntaShape),
+      new THREE.MeshBasicMaterial({
+        color: 0xff4b3e,
+        side: THREE.DoubleSide,
+      }),
+    );
+
+    marcador.add(punta);
+
+    const centro = new THREE.Mesh(
+      new THREE.CircleGeometry(0.11, 32),
+      new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        side: THREE.DoubleSide,
+      }),
+    );
+
+    centro.position.y = 0.18;
+    centro.position.z = 0.01;
+    marcador.add(centro);
+
+    grupo.add(marcador);
 
     const progreso = crearCirculoProgreso(0.01);
+    progreso.position.y = 0.18;
+    progreso.position.z = 0.02;
     grupo.add(progreso);
 
     grupo.userData.destino = new THREE.Vector3(pos.x, ALTURA_CAMARA, pos.z);
     grupo.userData.progreso = progreso;
+    grupo.userData.marcador = marcador;
 
     scene.add(grupo);
     puntosTeleport.push(grupo);
@@ -253,14 +288,13 @@ function crearPuntosTeleport() {
 
 function crearCirculoProgreso(progreso) {
   const circulo = new THREE.Mesh(
-    new THREE.RingGeometry(0.34, 0.42, 64, 1, 0, Math.PI * 2 * progreso),
+    new THREE.RingGeometry(0.26, 0.32, 64, 1, 0, Math.PI * 2 * progreso),
     new THREE.MeshBasicMaterial({
-      color: 0x00ff88,
+      color: 0xffffff,
       side: THREE.DoubleSide,
     }),
   );
 
-  circulo.rotation.x = -Math.PI / 2;
   return circulo;
 }
 
@@ -437,3 +471,10 @@ renderer.setAnimationLoop(() => {
     renderer.render(scene, camera);
   }
 });
+
+
+function actualizarMarcadores() {
+  puntosTeleport.forEach((punto) => {
+    punto.lookAt(camera.getWorldPosition(new THREE.Vector3()));
+  });
+}
