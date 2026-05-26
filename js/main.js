@@ -79,59 +79,98 @@ const input = {
 window.addEventListener("keydown", (e) => {
   e.preventDefault();
 
-  if (e.key === "AudioVolumeUp" || e.keyCode === 175) {
+  // JOYSTICK ARRIBA / BOTÓN A = AVANZAR
+  if (
+    e.key === "ArrowUp" ||
+    e.keyCode === 38 ||
+    e.key === "AudioVolumeUp" ||
+    e.keyCode === 175 ||
+    e.key === "w"
+  ) {
     input.forward = true;
   }
 
-  if (e.key === "AudioVolumeDown" || e.keyCode === 174) {
+  // JOYSTICK ABAJO / BOTÓN B = RETROCEDER
+  if (
+    e.key === "ArrowDown" ||
+    e.keyCode === 40 ||
+    e.key === "AudioVolumeDown" ||
+    e.keyCode === 174 ||
+    e.key === "s"
+  ) {
     input.backward = true;
   }
 
-  if (e.key === "MediaPlayPause" || e.keyCode === 179) {
-    input.strafeRight = true;
-  }
-
-  if (e.key === "MediaTrackPrevious" || e.keyCode === 177) {
+  // JOYSTICK IZQUIERDA = GIRAR IZQUIERDA
+  if (
+    e.key === "MediaTrackPrevious" ||
+    e.keyCode === 177 ||
+    e.key === "ArrowLeft" ||
+    e.key === "a"
+  ) {
     input.turnLeft = true;
   }
 
-  if (e.key === "MediaTrackNext" || e.keyCode === 176) {
+  // JOYSTICK DERECHA = GIRAR DERECHA
+  if (
+    e.key === "MediaTrackNext" ||
+    e.keyCode === 176 ||
+    e.key === "ArrowRight" ||
+    e.key === "d"
+  ) {
     input.turnRight = true;
   }
 
-  if (e.key === "w" || e.key === "ArrowUp") input.forward = true;
-  if (e.key === "s" || e.key === "ArrowDown") input.backward = true;
-  if (e.key === "a" || e.key === "ArrowLeft") input.turnLeft = true;
-  if (e.key === "d" || e.key === "ArrowRight") input.turnRight = true;
+  // BOTÓN X = MOVERSE A LA DERECHA
+  if (e.key === "MediaPlayPause" || e.keyCode === 179) {
+    input.strafeRight = true;
+  }
 });
 
 window.addEventListener("keyup", (e) => {
   e.preventDefault();
 
-  if (e.key === "AudioVolumeUp" || e.keyCode === 175) {
+  if (
+    e.key === "ArrowUp" ||
+    e.keyCode === 38 ||
+    e.key === "AudioVolumeUp" ||
+    e.keyCode === 175 ||
+    e.key === "w"
+  ) {
     input.forward = false;
   }
 
-  if (e.key === "AudioVolumeDown" || e.keyCode === 174) {
+  if (
+    e.key === "ArrowDown" ||
+    e.keyCode === 40 ||
+    e.key === "AudioVolumeDown" ||
+    e.keyCode === 174 ||
+    e.key === "s"
+  ) {
     input.backward = false;
+  }
+
+  if (
+    e.key === "MediaTrackPrevious" ||
+    e.keyCode === 177 ||
+    e.key === "ArrowLeft" ||
+    e.key === "a"
+  ) {
+    input.turnLeft = false;
+  }
+
+  if (
+    e.key === "MediaTrackNext" ||
+    e.keyCode === 176 ||
+    e.key === "ArrowRight" ||
+    e.key === "d"
+  ) {
+    input.turnRight = false;
   }
 
   if (e.key === "MediaPlayPause" || e.keyCode === 179) {
     input.strafeRight = false;
   }
-
-  if (e.key === "MediaTrackPrevious" || e.keyCode === 177) {
-    input.turnLeft = false;
-  }
-
-  if (e.key === "MediaTrackNext" || e.keyCode === 176) {
-    input.turnRight = false;
-  }
-
-  if (e.key === "w" || e.key === "ArrowUp") input.forward = false;
-  if (e.key === "s" || e.key === "ArrowDown") input.backward = false;
-  if (e.key === "a" || e.key === "ArrowLeft") input.turnLeft = false;
-  if (e.key === "d" || e.key === "ArrowRight") input.turnRight = false;
 });
 
 if (btnVR) {
