@@ -11,6 +11,9 @@ const navbar = document.getElementById("navbar");
 const footer = document.getElementById("footer");
 const panelConfig = document.getElementById("panelConfig");
 
+const debugControl = document.getElementById("debugControl");
+const debugTexto = document.getElementById("debugTexto");
+
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x202020);
 
@@ -82,6 +85,17 @@ const keys = {
 };
 
 window.addEventListener("keydown", (e) => {
+  e.preventDefault();
+
+  if (debugTexto) {
+    debugTexto.innerHTML = `
+      KEYDOWN<br>
+      key: ${e.key}<br>
+      code: ${e.code}<br>
+      keyCode: ${e.keyCode}
+    `;
+  }
+
   if (e.key === "w" || e.key === "ArrowUp") keys.forward = true;
   if (e.key === "s" || e.key === "ArrowDown") keys.backward = true;
   if (e.key === "a" || e.key === "ArrowLeft") keys.left = true;
@@ -89,6 +103,17 @@ window.addEventListener("keydown", (e) => {
 });
 
 window.addEventListener("keyup", (e) => {
+  e.preventDefault();
+
+  if (debugTexto) {
+    debugTexto.innerHTML = `
+      KEYUP<br>
+      key: ${e.key}<br>
+      code: ${e.code}<br>
+      keyCode: ${e.keyCode}
+    `;
+  }
+
   if (e.key === "w" || e.key === "ArrowUp") keys.forward = false;
   if (e.key === "s" || e.key === "ArrowDown") keys.backward = false;
   if (e.key === "a" || e.key === "ArrowLeft") keys.left = false;
@@ -96,7 +121,20 @@ window.addEventListener("keyup", (e) => {
 });
 
 window.addEventListener("gamepadconnected", (e) => {
+  if (debugTexto) {
+    debugTexto.innerHTML = `
+      GAMEPAD CONECTADO<br>
+      ${e.gamepad.id}
+    `;
+  }
+
   alert("Control conectado: " + e.gamepad.id);
+});
+
+window.addEventListener("gamepaddisconnected", () => {
+  if (debugTexto) {
+    debugTexto.innerHTML = "GAMEPAD DESCONECTADO";
+  }
 });
 
 if (tipoVR) {
@@ -126,6 +164,10 @@ async function activarPantallaCompleta() {
   footer.style.display = "none";
   panelConfig.style.display = "none";
 
+  if (debugControl) {
+    debugControl.style.display = "none";
+  }
+
   viewer.classList.add("fullscreen-viewer");
 
   btnVR.textContent = "Salir de VR";
@@ -143,6 +185,10 @@ function salirPantallaCompleta() {
   navbar.style.display = "block";
   footer.style.display = "block";
   panelConfig.style.display = "block";
+
+  if (debugControl) {
+    debugControl.style.display = "block";
+  }
 
   viewer.classList.remove("fullscreen-viewer");
 
@@ -298,6 +344,12 @@ function crearCirculoProgreso(progreso) {
   return circulo;
 }
 
+function actualizarMarcadores() {
+  puntosTeleport.forEach((punto) => {
+    punto.lookAt(camera.getWorldPosition(new THREE.Vector3()));
+  });
+}
+
 function actualizarTeleport(delta) {
   raycaster.setFromCamera(centroPantalla, camera);
 
@@ -323,6 +375,9 @@ function actualizarTeleport(delta) {
     grupo.remove(grupo.userData.progreso);
 
     const nuevoProgreso = crearCirculoProgreso(progreso);
+    nuevoProgreso.position.y = 0.18;
+    nuevoProgreso.position.z = 0.02;
+
     grupo.userData.progreso = nuevoProgreso;
     grupo.add(nuevoProgreso);
 
@@ -342,6 +397,9 @@ function resetearProgresoTeleport() {
     puntoMirado.remove(puntoMirado.userData.progreso);
 
     const progresoVacio = crearCirculoProgreso(0.01);
+    progresoVacio.position.y = 0.18;
+    progresoVacio.position.z = 0.02;
+
     puntoMirado.userData.progreso = progresoVacio;
     puntoMirado.add(progresoVacio);
   }
@@ -358,6 +416,20 @@ function leerGamepad() {
 
     const ejeX = gamepad.axes[0] || 0;
     const ejeY = gamepad.axes[1] || 0;
+
+    const botones = gamepad.buttons
+      .map((b, i) => (b.pressed ? i : null))
+      .filter((i) => i !== null);
+
+    if (debugTexto) {
+      debugTexto.innerHTML = `
+        GAMEPAD<br>
+        id: ${gamepad.id}<br>
+        ejeX: ${ejeX.toFixed(2)}<br>
+        ejeY: ${ejeY.toFixed(2)}<br>
+        botones: ${botones.join(", ")}
+      `;
+    }
 
     keys.forward = ejeY < -0.3 || gamepad.buttons[0]?.pressed;
     keys.backward = ejeY > 0.3 || gamepad.buttons[1]?.pressed;
@@ -462,6 +534,7 @@ renderer.setAnimationLoop(() => {
     controls.update();
   }
 
+  actualizarMarcadores();
   actualizarTeleport(delta);
   aplicarVistaVR();
 
@@ -471,10 +544,3 @@ renderer.setAnimationLoop(() => {
     renderer.render(scene, camera);
   }
 });
-
-
-function actualizarMarcadores() {
-  puntosTeleport.forEach((punto) => {
-    punto.lookAt(camera.getWorldPosition(new THREE.Vector3()));
-  });
-}
