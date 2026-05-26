@@ -116,8 +116,23 @@ window.addEventListener("keyup", (e) => {
 
   if (e.key === "w" || e.key === "ArrowUp") keys.forward = false;
   if (e.key === "s" || e.key === "ArrowDown") keys.backward = false;
-  if (e.key === "a" || e.key === "ArrowLeft") keys.left = false;
-  if (e.key === "d" || e.key === "ArrowRight") keys.right = false;
+  if (
+    e.key === "a" ||
+    e.key === "ArrowLeft" ||
+    e.key === "MediaTrackPrevious" ||
+    e.keyCode === 177
+  ) {
+    keys.left = false;
+  }
+
+  if (
+    e.key === "d" ||
+    e.key === "ArrowRight" ||
+    e.key === "MediaTrackNext" ||
+    e.keyCode === 176
+  ) {
+    keys.right = false;
+  }
 });
 
 window.addEventListener("gamepadconnected", (e) => {
