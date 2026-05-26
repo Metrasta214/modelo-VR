@@ -5,14 +5,8 @@ import { StereoEffect } from "https://esm.sh/three@0.164.1/examples/jsm/effects/
 
 const viewer = document.getElementById("viewer");
 const btnVR = document.getElementById("btnVR");
-const tipoVR = document.getElementById("tipoVR");
-
 const navbar = document.getElementById("navbar");
 const footer = document.getElementById("footer");
-const panelConfig = document.getElementById("panelConfig");
-
-const debugControl = document.getElementById("debugControl");
-const debugTexto = document.getElementById("debugTexto");
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x202020);
@@ -21,7 +15,7 @@ const ALTURA_CAMARA = 1.7;
 const LIMITE_PISO = 1.2;
 
 const camera = new THREE.PerspectiveCamera(
-  75,
+  80,
   viewer.clientWidth / viewer.clientHeight,
   0.1,
   1000,
@@ -38,12 +32,13 @@ const effect = new StereoEffect(renderer);
 effect.setSize(viewer.clientWidth, viewer.clientHeight);
 
 let modoVR = false;
-let vistaSeleccionada = "normal";
-
 let usarGiroscopio = false;
+
 let alpha = 0;
 let beta = 0;
 let gamma = 0;
+
+let yawOffset = 0;
 
 const raycaster = new THREE.Raycaster();
 const centroPantalla = new THREE.Vector2(0, 0);
@@ -72,77 +67,72 @@ player.position.set(0, ALTURA_CAMARA, 0);
 scene.add(player);
 player.add(camera);
 
-const keys = {
+const input = {
   forward: false,
   backward: false,
-  left: false,
-  right: false,
+  turnLeft: false,
+  turnRight: false,
+  strafeLeft: false,
+  strafeRight: false,
 };
 
 window.addEventListener("keydown", (e) => {
   e.preventDefault();
 
-  if (debugTexto) {
-    debugTexto.innerHTML = `
-      KEYDOWN<br>
-      key: ${e.key}<br>
-      code: ${e.code}<br>
-      keyCode: ${e.keyCode}
-    `;
+  if (e.key === "AudioVolumeUp" || e.keyCode === 175) {
+    input.forward = true;
+  }
+
+  if (e.key === "AudioVolumeDown" || e.keyCode === 174) {
+    input.backward = true;
+  }
+
+  if (e.key === "MediaPlayPause" || e.keyCode === 179) {
+    input.strafeRight = true;
   }
 
   if (e.key === "MediaTrackPrevious" || e.keyCode === 177) {
-    moverJugadorDirecto("left");
+    input.turnLeft = true;
   }
 
   if (e.key === "MediaTrackNext" || e.keyCode === 176) {
-    moverJugadorDirecto("right");
+    input.turnRight = true;
   }
 
-  if (e.key === "w" || e.key === "ArrowUp") keys.forward = true;
-  if (e.key === "s" || e.key === "ArrowDown") keys.backward = true;
-  if (e.key === "a" || e.key === "ArrowLeft") keys.left = true;
-  if (e.key === "d" || e.key === "ArrowRight") keys.right = true;
+  if (e.key === "w" || e.key === "ArrowUp") input.forward = true;
+  if (e.key === "s" || e.key === "ArrowDown") input.backward = true;
+  if (e.key === "a" || e.key === "ArrowLeft") input.turnLeft = true;
+  if (e.key === "d" || e.key === "ArrowRight") input.turnRight = true;
 });
 
 window.addEventListener("keyup", (e) => {
   e.preventDefault();
 
-  if (debugTexto) {
-    debugTexto.innerHTML = `
-      KEYUP<br>
-      key: ${e.key}<br>
-      code: ${e.code}<br>
-      keyCode: ${e.keyCode}
-    `;
+  if (e.key === "AudioVolumeUp" || e.keyCode === 175) {
+    input.forward = false;
   }
 
-  if (e.key === "w" || e.key === "ArrowUp") keys.forward = false;
-  if (e.key === "s" || e.key === "ArrowDown") keys.backward = false;
-  if (e.key === "a" || e.key === "ArrowLeft") keys.left = false;
-  if (e.key === "d" || e.key === "ArrowRight") keys.right = false;
-});
-
-window.addEventListener("gamepadconnected", (e) => {
-  if (debugTexto) {
-    debugTexto.innerHTML = `
-      GAMEPAD CONECTADO<br>
-      ${e.gamepad.id}
-    `;
+  if (e.key === "AudioVolumeDown" || e.keyCode === 174) {
+    input.backward = false;
   }
-});
 
-window.addEventListener("gamepaddisconnected", () => {
-  if (debugTexto) {
-    debugTexto.innerHTML = "GAMEPAD DESCONECTADO";
+  if (e.key === "MediaPlayPause" || e.keyCode === 179) {
+    input.strafeRight = false;
   }
-});
 
-if (tipoVR) {
-  tipoVR.addEventListener("change", () => {
-    vistaSeleccionada = tipoVR.value;
-  });
-}
+  if (e.key === "MediaTrackPrevious" || e.keyCode === 177) {
+    input.turnLeft = false;
+  }
+
+  if (e.key === "MediaTrackNext" || e.keyCode === 176) {
+    input.turnRight = false;
+  }
+
+  if (e.key === "w" || e.key === "ArrowUp") input.forward = false;
+  if (e.key === "s" || e.key === "ArrowDown") input.backward = false;
+  if (e.key === "a" || e.key === "ArrowLeft") input.turnLeft = false;
+  if (e.key === "d" || e.key === "ArrowRight") input.turnRight = false;
+});
 
 if (btnVR) {
   btnVR.addEventListener("click", async () => {
@@ -163,9 +153,6 @@ if (btnVR) {
 async function activarPantallaCompleta() {
   navbar.style.display = "none";
   footer.style.display = "none";
-  panelConfig.style.display = "none";
-
-  if (debugControl) debugControl.style.display = "none";
 
   viewer.classList.add("fullscreen-viewer");
 
@@ -183,9 +170,6 @@ async function activarPantallaCompleta() {
 function salirPantallaCompleta() {
   navbar.style.display = "block";
   footer.style.display = "block";
-  panelConfig.style.display = "block";
-
-  if (debugControl) debugControl.style.display = "block";
 
   viewer.classList.remove("fullscreen-viewer");
 
@@ -241,9 +225,6 @@ loader.load(
 
     model.position.set(0, 0, 0);
     model.scale.set(1, 1, 1);
-
-    controls.target.set(0, 1, 0);
-    controls.update();
 
     player.position.set(0, ALTURA_CAMARA, 0);
 
@@ -375,7 +356,11 @@ function actualizarTeleport(delta) {
 
     if (progreso >= 1) {
       const destino = grupo.userData.destino;
-      player.position.set(destino.x, ALTURA_CAMARA, destino.z);
+
+      player.position.x = destino.x;
+      player.position.y = ALTURA_CAMARA;
+      player.position.z = destino.z;
+
       resetearProgresoTeleport();
     }
   } else {
@@ -399,45 +384,35 @@ function resetearProgresoTeleport() {
   tiempoMirando = 0;
 }
 
-function leerGamepad() {
-  const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+function actualizarMovimiento(delta) {
+  const velocidad = 2.2;
+  const velocidadGiro = 1.8;
 
-  for (const gamepad of gamepads) {
-    if (!gamepad) continue;
+  if (input.turnLeft) yawOffset += velocidadGiro * delta;
+  if (input.turnRight) yawOffset -= velocidadGiro * delta;
 
-    const ejeX = gamepad.axes[0] || 0;
-    const ejeY = gamepad.axes[1] || 0;
+  const forward = new THREE.Vector3(0, 0, -1);
+  forward.applyQuaternion(camera.quaternion);
+  forward.y = 0;
+  forward.normalize();
 
-    keys.forward = ejeY < -0.3 || gamepad.buttons[0]?.pressed;
-    keys.backward = ejeY > 0.3 || gamepad.buttons[1]?.pressed;
-    keys.left = ejeX < -0.3;
-    keys.right = ejeX > 0.3;
+  const right = new THREE.Vector3(1, 0, 0);
+  right.applyQuaternion(camera.quaternion);
+  right.y = 0;
+  right.normalize();
+
+  const movimiento = new THREE.Vector3();
+
+  if (input.forward) movimiento.add(forward);
+  if (input.backward) movimiento.sub(forward);
+  if (input.strafeRight) movimiento.add(right);
+  if (input.strafeLeft) movimiento.sub(right);
+
+  if (movimiento.lengthSq() > 0) {
+    movimiento.normalize();
+    movimiento.multiplyScalar(velocidad * delta);
+    player.position.add(movimiento);
   }
-}
-
-function moverJugadorDirecto(direccion) {
-  const distancia = 0.35;
-
-  if (direccion === "left") player.position.x -= distancia;
-  if (direccion === "right") player.position.x += distancia;
-  if (direccion === "forward") player.position.z -= distancia;
-  if (direccion === "backward") player.position.z += distancia;
-
-  if (player.position.y < LIMITE_PISO) {
-    player.position.y = LIMITE_PISO;
-  }
-}
-
-function movePlayer() {
-  const speed = 0.05;
-  const direction = new THREE.Vector3();
-
-  if (keys.forward) direction.z -= speed;
-  if (keys.backward) direction.z += speed;
-  if (keys.left) direction.x -= speed;
-  if (keys.right) direction.x += speed;
-
-  player.position.add(direction);
 
   if (player.position.y < LIMITE_PISO) {
     player.position.y = LIMITE_PISO;
@@ -467,28 +442,21 @@ function aplicarGiroscopio() {
     -orientacionRad,
   );
 
+  const correccionJoystick = new THREE.Quaternion();
+  correccionJoystick.setFromAxisAngle(new THREE.Vector3(0, 1, 0), yawOffset);
+
   quaternion.multiply(correccionCamara);
   quaternion.multiply(correccionPantalla);
+  quaternion.premultiply(correccionJoystick);
 
   camera.quaternion.copy(quaternion);
-}
-
-function aplicarVistaVR() {
-  if (vistaSeleccionada === "cardboard1") {
-    camera.fov = 65;
-  } else if (vistaSeleccionada === "cardboard2") {
-    camera.fov = 80;
-  } else {
-    camera.fov = 75;
-  }
-
-  camera.updateProjectionMatrix();
 }
 
 function resizeRenderer() {
   const width = viewer.clientWidth;
   const height = viewer.clientHeight;
 
+  camera.fov = 80;
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
 
@@ -515,8 +483,7 @@ const clock = new THREE.Clock();
 renderer.setAnimationLoop(() => {
   const delta = clock.getDelta();
 
-  leerGamepad();
-  movePlayer();
+  actualizarMovimiento(delta);
 
   if (usarGiroscopio) {
     aplicarGiroscopio();
@@ -526,9 +493,8 @@ renderer.setAnimationLoop(() => {
 
   actualizarMarcadores();
   actualizarTeleport(delta);
-  aplicarVistaVR();
 
-  if (modoVR && vistaSeleccionada !== "normal") {
+  if (modoVR) {
     effect.render(scene, camera);
   } else {
     renderer.render(scene, camera);
