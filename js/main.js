@@ -29,13 +29,9 @@ const camera = new THREE.PerspectiveCamera(
 
 camera.position.set(0, 0, 0);
 
-const renderer = new THREE.WebGLRenderer({
-  antialias: true,
-});
-
+const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(viewer.clientWidth, viewer.clientHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
 viewer.appendChild(renderer.domElement);
 
 const effect = new StereoEffect(renderer);
@@ -62,8 +58,7 @@ controls.enableDamping = true;
 controls.enablePan = false;
 controls.target.set(0, 1, 0);
 
-const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
-scene.add(ambientLight);
+scene.add(new THREE.AmbientLight(0xffffff, 1.5));
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
 directionalLight.position.set(5, 10, 5);
@@ -96,6 +91,14 @@ window.addEventListener("keydown", (e) => {
     `;
   }
 
+  if (e.key === "MediaTrackPrevious" || e.keyCode === 177) {
+    moverJugadorDirecto("left");
+  }
+
+  if (e.key === "MediaTrackNext" || e.keyCode === 176) {
+    moverJugadorDirecto("right");
+  }
+
   if (e.key === "w" || e.key === "ArrowUp") keys.forward = true;
   if (e.key === "s" || e.key === "ArrowDown") keys.backward = true;
   if (e.key === "a" || e.key === "ArrowLeft") keys.left = true;
@@ -116,23 +119,8 @@ window.addEventListener("keyup", (e) => {
 
   if (e.key === "w" || e.key === "ArrowUp") keys.forward = false;
   if (e.key === "s" || e.key === "ArrowDown") keys.backward = false;
-  if (
-    e.key === "a" ||
-    e.key === "ArrowLeft" ||
-    e.key === "MediaTrackPrevious" ||
-    e.keyCode === 177
-  ) {
-    keys.left = false;
-  }
-
-  if (
-    e.key === "d" ||
-    e.key === "ArrowRight" ||
-    e.key === "MediaTrackNext" ||
-    e.keyCode === 176
-  ) {
-    keys.right = false;
-  }
+  if (e.key === "a" || e.key === "ArrowLeft") keys.left = false;
+  if (e.key === "d" || e.key === "ArrowRight") keys.right = false;
 });
 
 window.addEventListener("gamepadconnected", (e) => {
@@ -142,8 +130,6 @@ window.addEventListener("gamepadconnected", (e) => {
       ${e.gamepad.id}
     `;
   }
-
-  alert("Control conectado: " + e.gamepad.id);
 });
 
 window.addEventListener("gamepaddisconnected", () => {
@@ -179,9 +165,7 @@ async function activarPantallaCompleta() {
   footer.style.display = "none";
   panelConfig.style.display = "none";
 
-  if (debugControl) {
-    debugControl.style.display = "none";
-  }
+  if (debugControl) debugControl.style.display = "none";
 
   viewer.classList.add("fullscreen-viewer");
 
@@ -201,9 +185,7 @@ function salirPantallaCompleta() {
   footer.style.display = "block";
   panelConfig.style.display = "block";
 
-  if (debugControl) {
-    debugControl.style.display = "block";
-  }
+  if (debugControl) debugControl.style.display = "block";
 
   viewer.classList.remove("fullscreen-viewer");
 
@@ -233,7 +215,6 @@ async function activarGiroscopio() {
     usarGiroscopio = true;
     controls.enabled = false;
   } catch (error) {
-    console.error("Error al activar giroscopio:", error);
     alert("Tu navegador no permitió usar el giroscopio.");
   }
 }
@@ -340,7 +321,6 @@ function crearPuntosTeleport() {
 
     grupo.userData.destino = new THREE.Vector3(pos.x, ALTURA_CAMARA, pos.z);
     grupo.userData.progreso = progreso;
-    grupo.userData.marcador = marcador;
 
     scene.add(grupo);
     puntosTeleport.push(grupo);
@@ -348,15 +328,13 @@ function crearPuntosTeleport() {
 }
 
 function crearCirculoProgreso(progreso) {
-  const circulo = new THREE.Mesh(
+  return new THREE.Mesh(
     new THREE.RingGeometry(0.26, 0.32, 64, 1, 0, Math.PI * 2 * progreso),
     new THREE.MeshBasicMaterial({
       color: 0xffffff,
       side: THREE.DoubleSide,
     }),
   );
-
-  return circulo;
 }
 
 function actualizarMarcadores() {
@@ -372,8 +350,7 @@ function actualizarTeleport(delta) {
   const intersects = raycaster.intersectObjects(objetos, true);
 
   if (intersects.length > 0) {
-    const objeto = intersects[0].object;
-    const grupo = objeto.parent;
+    const grupo = intersects[0].object.parent;
 
     if (!grupo || !grupo.userData.destino) return;
 
@@ -399,7 +376,6 @@ function actualizarTeleport(delta) {
     if (progreso >= 1) {
       const destino = grupo.userData.destino;
       player.position.set(destino.x, ALTURA_CAMARA, destino.z);
-
       resetearProgresoTeleport();
     }
   } else {
@@ -432,24 +408,23 @@ function leerGamepad() {
     const ejeX = gamepad.axes[0] || 0;
     const ejeY = gamepad.axes[1] || 0;
 
-    const botones = gamepad.buttons
-      .map((b, i) => (b.pressed ? i : null))
-      .filter((i) => i !== null);
-
-    if (debugTexto) {
-      debugTexto.innerHTML = `
-        GAMEPAD<br>
-        id: ${gamepad.id}<br>
-        ejeX: ${ejeX.toFixed(2)}<br>
-        ejeY: ${ejeY.toFixed(2)}<br>
-        botones: ${botones.join(", ")}
-      `;
-    }
-
     keys.forward = ejeY < -0.3 || gamepad.buttons[0]?.pressed;
     keys.backward = ejeY > 0.3 || gamepad.buttons[1]?.pressed;
     keys.left = ejeX < -0.3;
     keys.right = ejeX > 0.3;
+  }
+}
+
+function moverJugadorDirecto(direccion) {
+  const distancia = 0.35;
+
+  if (direccion === "left") player.position.x -= distancia;
+  if (direccion === "right") player.position.x += distancia;
+  if (direccion === "forward") player.position.z -= distancia;
+  if (direccion === "backward") player.position.z += distancia;
+
+  if (player.position.y < LIMITE_PISO) {
+    player.position.y = LIMITE_PISO;
   }
 }
 
